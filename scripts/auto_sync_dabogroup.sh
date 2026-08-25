@@ -46,7 +46,7 @@ python3 scripts/build_dabogroup_standalone.py >> "$LOG_FILE" 2>&1 || {
 
 # Step 3: Git 推送（需先配置 remote，参考：git remote add origin git@github.com:czcaizjy-lang/dabogroup.git）
 log "--- 推送部署 ---"
-git add data/dabogroup_data.json dabogroup.html docs/dabogroup.html 2>/dev/null
+git add data/dabogroup_data.json dabogroup.html docs/index.html 2>/dev/null
 
 if git diff --cached --quiet 2>/dev/null; then
     log "无数据变更，跳过 git push"

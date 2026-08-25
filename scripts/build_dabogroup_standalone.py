@@ -15,7 +15,7 @@ TEMPLATE_PATH = os.path.join(BASE_DIR, 'dabogroup.template.html')
 DATA_PATH = os.path.join(BASE_DIR, 'data', 'dabogroup_data.json')
 OUTPUT_PATHS = [
     os.path.join(BASE_DIR, 'dabogroup.html'),            # 根目录：双击即开（内嵌数据）
-    os.path.join(BASE_DIR, 'docs', 'dabogroup.html'),    # GitHub Pages 部署入口
+    os.path.join(BASE_DIR, 'docs', 'index.html'),        # GitHub Pages 部署入口（docs/ 需有 index.html，根路径才可直接打开）
 ]
 
 # ---- fetch 替换文本 ----
