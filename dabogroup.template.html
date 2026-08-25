@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抖音达播看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --card: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e4e4e7;
+  --text2: #9ca3af;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --blue: #3b82f6;
+  --table-head: #1e2130;
+}
+[data-theme="light"] {
+  --bg: #f4f4f6;
+  --card: #ffffff;
+  --border: #e0e0e4;
+  --text: #1c1c28;
+  --text2: #8e8e98;
+  --accent: #6366f1;
+  --accent2: #4f46e5;
+  --green: #16a34a;
+  --red: #dc2626;
+  --orange: #d97706;
+  --blue: #2563eb;
+  --table-head: #f0f0f3;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px;
+}
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 28px;
+}
+.header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+.header .subtitle { color: var(--text2); font-size: 13px; margin-top: 2px; }
+.data-source-toggle {
+  display: flex; gap: 4px; background: var(--card); border-radius: 10px;
+  padding: 4px; border: 1px solid var(--border); margin-right: 8px;
+}
+.data-source-btn {
+  padding: 7px 14px; border-radius: 7px; font-size: 13px;
+  cursor: pointer; color: var(--text2); transition: all 0.2s;
+  border: none; background: none; white-space: nowrap;
+}
+.data-source-btn.active { background: var(--accent); color: #fff; }
+.data-source-btn:hover:not(.active) { color: var(--text); }
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px;
+}
+.kpi-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+.kpi-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.orange { color: var(--orange); }
+.kpi-value.blue { color: var(--blue); }
+.kpi-value.red { color: var(--red); }
+.section { margin-bottom: 28px; }
+.section-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.section-title::before { content: ''; width: 3px; height: 16px; background: var(--accent); border-radius: 2px; }
+table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+thead th {
+  background: var(--table-head); padding: 12px 14px;
+  text-align: left; font-weight: 500; color: var(--text2);
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  cursor: pointer; user-select: none; position: sticky; top: 0;
+}
+thead th .col-resize-handle {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 6px; cursor: col-resize; z-index: 10;
+}
+thead th .col-resize-handle:hover { background: var(--accent); }
+thead th .col-resize-handle.active { background: var(--accent); }
+thead th:hover { color: var(--text); }
+thead th .sort-ind { font-size: 10px; margin-left: 4px; opacity: 0.4; }
+thead th .sort-ind.active { opacity: 1; color: var(--accent2); }
+tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+tbody tr:hover { background: rgba(99,102,241,0.06); }
+tbody tr:last-child td { border-bottom: none; }
+.person-drill-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.person-drill-table thead th {
+  padding: 8px 12px; background: var(--table-head); color: var(--text2);
+  font-weight: 600; font-size: 11px; text-align: right;
+  border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 1;
+}
+.person-drill-table thead th:first-child { text-align: left; }
+.person-drill-table tbody td { padding: 7px 12px; border-bottom: 1px solid var(--border); text-align: right; }
+.person-drill-table tbody td:first-child { text-align: left; font-weight: 500; }
+.person-drill-table tbody tr:hover { background: rgba(99,102,241,0.06); }
+.person-drill-table .drill-up { color: var(--green); }
+.person-drill-table .drill-down { color: var(--red); }
+.person-drill-filter-btn {
+  padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--text2);
+  font-size: 11px; cursor: pointer; transition: all 0.2s;
+}
+.person-drill-filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rank-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px; font-size: 12px; font-weight: 600;
+}
+.rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1d27; }
+.rank-2 { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #1a1d27; }
+.rank-3 { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; }
+.rank-n { background: var(--border); color: var(--text2); }
+.bar-cell { position: relative; min-width: 80px; }
+.bar-bg {
+  position: absolute; left: 0; top: 3px; bottom: 3px;
+  border-radius: 4px; background: var(--accent);
+  opacity: 0.12; max-width: 100%;
+}
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.tag-green { background: rgba(34,197,94,0.15); color: var(--green); }
+.tag-red { background: rgba(239,68,68,0.15); color: var(--red); }
+.tag-orange { background: rgba(245,158,11,0.15); color: var(--orange); }
+.tag-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+.search-bar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+.search-bar input {
+  flex: 1; max-width: 300px; padding: 9px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  font-size: 13px; outline: none;
+}
+.search-bar input:focus { border-color: var(--accent); }
+.search-bar select {
+  padding: 9px 14px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 13px; outline: none;
+}
+.chart-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;
+}
+.chart-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+}
+.chart-card-title {
+  font-size: 14px; font-weight: 600; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.chart-card-title::before { content: ''; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+.chart-canvas-wrap { position: relative; height: 280px; }
+.chart-canvas-wrap-sm { height: 340px; }
+.pie-section { position: relative; }
+.pie-sub-title {
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  margin-bottom: 10px; padding-left: 2px; letter-spacing: 0.3px;
+}
+.person-btn {
+  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text2); font-size: 11px; cursor: pointer; transition: all 0.2s;
+}
+.person-btn.active { background: var(--accent); color: #fff; }
+@media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+.hidden { display: none; }
+.table-wrap { overflow-x: auto; border-radius: 12px; }
+@media (max-width: 768px) {
+  body { padding: 12px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-value { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>抖音达播看板</h1>
+    <div class="subtitle">全达播组 · <span id="updateTime"></span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="data-source-toggle" title="切换商务：上方卡片、趋势图、占比和达人列表联动过滤">
+      <button class="data-source-btn active" data-zb="全部" onclick="switchZb('全部')">全部</button>
+      <button class="data-source-btn" data-zb="星辞" onclick="switchZb('星辞')">星辞</button>
+      <button class="data-source-btn" data-zb="雅宁" onclick="switchZb('雅宁')">雅宁</button>
+      <button class="data-source-btn" data-zb="久酒" onclick="switchZb('久酒')">久酒</button>
+      <button class="data-source-btn" data-zb="奥易" onclick="switchZb('奥易')">奥易</button>
+      <button class="data-source-btn" data-zb="檀雅" onclick="switchZb('檀雅')">檀雅</button>
+      <button class="data-source-btn" data-zb="其他" onclick="switchZb('其他')">其他</button>
+    </div>
+    <button id="themeToggle" onclick="toggleTheme()" title="切换浅色/深色主题" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--text);line-height:1;">🌙</button>
+  </div>
+</div>
+
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div id="progressSection" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+    <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <span style="width:3px;height:14px;background:var(--accent);border-radius:2px;display:inline-block;"></span>
+      8月进度追踪 <span id="progressZbLabel" style="font-weight:400;font-size:12px;color:var(--text2);"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);">
+      <span>目标 GMV：</span>
+      <input type="text" id="targetGmvInput" style="width:120px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;text-align:right;" oninput="updateProgress()">
+      <span>万</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:18px;">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:13px;color:var(--text2);">时间进度</span>
+        <span style="font-size:13px;font-weight:600;" id="timeProgressPct"></span>
+      </div>
+      <div id="timeProgressHoverZone" style="position:relative;"
+           onmouseenter="showExpectedGmv()" onmouseleave="hideExpectedGmv()">
+        <div style="height:10px;border-radius:5px;background:var(--border);overflow:hidden;position:relative;cursor:pointer;" id="timeProgressBarWrap">
+          <div id="timeProgressBar" style="height:100%;border-radius:5px;background:linear-gradient(90deg,#818cf8,#a78bfa);transition:width 0.6s;"></div>
+        </div>
+        <div id="expectedGmvTooltip" style="display:none;margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--card);border:1px solid var(--border);font-size:12px;color:var(--text2);text-align:center;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text2);">
+        <span>8月1日</span><span id="timeNowLabel"></span><span>8月31日</span>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:13px;color:var(--text2);">GMV 完成进度</span>
+        <span style="font-size:13px;font-weight:600;" id="gmvProgressPct"></span>
+      </div>
+      <div style="height:10px;border-radius:5px;background:var(--border);overflow:hidden;position:relative;">
+        <div id="gmvProgressBar" style="height:100%;border-radius:5px;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width 0.6s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text2);">
+        <span id="gmvCurrentLabel">当前 GMV: -</span>
+        <span id="gmvTargetLabel">目标: -</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="chart-grid" id="mainChartGrid" style="grid-template-columns: 1fr 1fr;">
+  <div class="chart-card" id="totalTrendCard" style="grid-column: 1 / -1;">
+    <div class="chart-card-title" id="totalTrendTitle">达播组每日总业绩趋势</div>
+    <div class="chart-canvas-wrap"><canvas id="totalTrendChart"></canvas></div>
+  </div>
+  <div class="chart-card" id="personTrendCard">
+    <div class="chart-card-title" style="flex-wrap:wrap;gap:8px;">
+      <span>商务分天业绩 <span style="font-weight:400;font-size:11px;color:var(--text2);">支付GMV（万元）</span></span>
+      <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;">
+        <button class="person-btn active" data-person="all" onclick="focusPerson('all')">全部</button>
+        <button class="person-btn" data-person="星辞" onclick="focusPerson('星辞')">星辞</button>
+        <button class="person-btn" data-person="雅宁" onclick="focusPerson('雅宁')">雅宁</button>
+        <button class="person-btn" data-person="久酒" onclick="focusPerson('久酒')">久酒</button>
+        <button class="person-btn" data-person="奥易" onclick="focusPerson('奥易')">奥易</button>
+        <button class="person-btn" data-person="檀雅" onclick="focusPerson('檀雅')">檀雅</button>
+        <button class="person-btn" data-person="其他" onclick="focusPerson('其他')">其他</button>
+      </div>
+    </div>
+    <div class="chart-canvas-wrap" style="height:360px"><canvas id="personTrendChart"></canvas></div>
+  </div>
+  <div class="chart-card" id="pieCard">
+    <div class="chart-card-title" id="pieCardTitle">业绩占比</div>
+    <div class="pie-section">
+      <div class="pie-sub-title" id="pieSubTitle">商务 GMV 占比</div>
+      <div class="chart-canvas-wrap chart-canvas-wrap-sm"><canvas id="pieChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div id="anchorsView" class="section">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="搜索达人名称 / 抖音号..." onkeydown="if(event.key==='Enter')filterAnchors()">
+    <button onclick="filterAnchors()" style="padding:9px 16px;border-radius:8px;border:1px solid var(--accent);background:rgba(99,102,241,0.15);color:var(--accent2);font-size:13px;cursor:pointer;white-space:nowrap;">查询</button>
+    <select id="zbFilter" onchange="switchZb(this.value)">
+      <option value="全部">全部商务</option>
+      <option value="星辞">星辞</option>
+      <option value="雅宁">雅宁</option>
+      <option value="久酒">久酒</option>
+      <option value="奥易">奥易</option>
+      <option value="檀雅">檀雅</option>
+      <option value="其他">其他</option>
+    </select>
+    <span id="anchorCountLabel" style="font-size:12px;color:var(--text2);margin-left:auto;"></span>
+  </div>
+  <div class="table-wrap">
+    <table id="anchorTable">
+      <thead><tr id="anchorHead"></tr></thead>
+      <tbody id="anchorBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="drillModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+  <div style="background:var(--card);border-radius:16px;padding:24px;width:90%;max-width:700px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="drillTitle" style="margin:0;font-size:16px;"></h3>
+      <button onclick="closeDrillModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">&times;</button>
+    </div>
+    <div style="height:280px;position:relative;"><canvas id="drillChart"></canvas></div>
+  </div>
+</div>
+
+<div id="personDrillModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1001;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+  <div style="background:var(--card);border-radius:16px;padding:24px;width:90%;max-width:800px;max-height:85vh;position:relative;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-shrink:0;">
+      <h3 id="personDrillTitle" style="margin:0;font-size:16px;"></h3>
+      <button onclick="closePersonDrillModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">&times;</button>
+    </div>
+    <div id="personDrillSubtitle" style="font-size:12px;color:var(--text2);margin-bottom:12px;flex-shrink:0;"></div>
+    <div id="personDrillFilter" style="display:flex;gap:6px;margin-bottom:12px;flex-shrink:0;display:none;">
+      <button onclick="filterPersonDrill('all')" class="person-drill-filter-btn active" data-filter="all">全部</button>
+      <button onclick="filterPersonDrill('down')" class="person-drill-filter-btn" data-filter="down">↓ 仅下降</button>
+      <button onclick="filterPersonDrill('up')" class="person-drill-filter-btn" data-filter="up">↑ 仅上涨</button>
+    </div>
+    <div style="overflow-y:auto;max-height:60vh;flex:1;">
+      <table class="person-drill-table">
+        <thead><tr id="personDrillHead"></tr></thead>
+        <tbody id="personDrillBody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px;text-align:center;flex-shrink:0;">
+      按当日较前日变化量排序 · 仅显示变化量 ≥ 0.01万的达人
+    </div>
+  </div>
+</div>
+
+<script>
+let DATA = null;
+let currentZb = '全部';
+let currentTheme = 'dark';
+let sortCol = '直播GMV';
+let sortDir = -1;
+
+const ZB_ORDER = ['星辞', '雅宁', '久酒', '奥易', '檀雅', '其他'];
+const ZB_COLORS = {
+  '星辞': '#818cf8', '雅宁': '#22c55e', '久酒': '#f59e0b',
+  '奥易': '#ec4899', '檀雅': '#06b6d4', '其他': '#9ca3af'
+};
+const PIE_COLORS = ['#818cf8','#22c55e','#f59e0b','#ec4899','#06b6d4','#a78bfa','#f97316','#3b82f6','#14b8a6','#e879f9'];
+const DISPLAY_COLS = ['主播昵称', '归属商务', '直播GMV', '直播支付GMV', '直播退款GMV', '直播结算GMV', '结算率', 'ROI', '佣金支出', '投放消耗金额'];
+const COL_LABELS = { '直播GMV': '直播总成交金额' };
+function colLabel(col) { return COL_LABELS[col] || col; }
+function getCols() { return DISPLAY_COLS; }
+
+// 月份交界虚线插件：在跨月位置画垂直虚线
+Chart.register({
+  id: 'monthBoundaryLine',
+  afterDraw: function(chart) {
+    var labels = chart.data.labels;
+    if (!labels || labels.length < 2) return;
+    var firstMonth = labels[0].split('/')[0];
+    var boundaryIdx = -1;
+    for (var i = 1; i < labels.length; i++) {
+      if (labels[i].split('/')[0] !== firstMonth) { boundaryIdx = i; break; }
+    }
+    if (boundaryIdx < 0) return;
+    var xScale = chart.scales.x, yScale = chart.scales.y;
+    if (!xScale || !yScale) return;
+    var x = xScale.getPixelForValue(boundaryIdx - 0.5);
+    var ctx = chart.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = currentTheme === 'light' ? '#52525b' : '#9ca3af';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(x, yScale.top);
+    ctx.lineTo(x, yScale.bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+});
+
+// 环形图中心文字插件：在环心绘制总 GMV（金额 + 标签）
+Chart.register({
+  id: 'pieCenter',
+  afterDraw: function(chart) {
+    var opt = chart.config.options.plugins && chart.config.options.plugins.pieCenter;
+    if (!opt || !opt.show) return;
+    var meta = chart.getDatasetMeta(0);
+    if (!meta.data || !meta.data.length) return;
+    var el = meta.data[0];
+    var ctx = chart.ctx;
+    var mainColor = currentTheme === 'light' ? '#1c1c28' : '#e4e4e7';
+    var subColor = currentTheme === 'light' ? '#6b7280' : '#9ca3af';
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = mainColor;
+    ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(opt.main, el.x, el.y - 7);
+    ctx.fillStyle = subColor;
+    ctx.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(opt.sub, el.x, el.y + 19);
+    ctx.restore();
+  }
+});
+
+function getChartColors() {
+  if (currentTheme === 'light') {
+    return { grid: '#e8e8ec', tick: '#8e8e98', legend: '#8e8e98', tooltipBg: '#ffffff', tooltipTitle: '#1c1c28', tooltipBody: '#6b7280', tooltipBorder: '#e0e0e4' };
+  }
+  return { grid: '#2a2d3a', tick: '#9ca3af', legend: '#9ca3af', tooltipBg: '#1e2130', tooltipTitle: '#e4e4e7', tooltipBody: '#9ca3af', tooltipBorder: '#2a2d3a' };
+}
+
+function smartXAxis(cc, fontSize) {
+  fontSize = fontSize || 10;
+  return {
+    grid: { color: cc.grid },
+    ticks: {
+      color: cc.tick, font: { size: fontSize },
+      autoSkip: false,
+      callback: function(val, index, ticks) {
+        var label = this.getLabelForValue(val);
+        if (!label) return null;
+        if (index === 0 || index === ticks.length - 1) return label;
+        if (index > 0) {
+          var prevLabel = this.getLabelForValue(ticks[index - 1].value);
+          if (prevLabel && label.split('/')[0] !== prevLabel.split('/')[0]) return label;
+        }
+        if (index % 3 === 0) return label;
+        return null;
+      }
+    }
+  };
+}
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('dashboardTheme', theme);
+  if (DATA) renderTrendCharts();
+}
+
+function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+
+function switchZb(zb) {
+  currentZb = zb;
+  document.querySelectorAll('.data-source-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-zb') === zb);
+  });
+  const sel = document.getElementById('zbFilter');
+  if (sel) sel.value = zb;
+  const zbLabel = document.getElementById('progressZbLabel');
+  if (zbLabel) zbLabel.textContent = '· ' + (zb === '全部' ? '全达播组' : zb);
+  ['__totalChart','__personChart','__pieChart'].forEach(k => {
+    if (window[k]) { window[k].destroy(); window[k] = null; }
+  });
+  render();
+}
+
+(function() { applyTheme(localStorage.getItem('dashboardTheme') || 'dark'); })();
+
+fetch('data/dabogroup_data.json?t=' + Date.now()).then(r => r.json()).then(d => {
+  DATA = d;
+  render();
+}).catch(e => { console.error('Failed to load dashboard data:', e); });
+
+function fmt(v, type) {
+  if (v === null || v === undefined || v === '' || v === 'None') return '-';
+  if (type === 'money') {
+    let n = parseFloat(v);
+    if (isNaN(n)) return v;
+    if (Math.abs(n) >= 10000) return '¥' + (n/10000).toFixed(2) + '万';
+    return '¥' + n.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+  }
+  if (type === 'pct') {
+    let n = parseFloat(v);
+    if (isNaN(n)) return v;
+    return (n * 100).toFixed(1) + '%';
+  }
+  return v;
+}
+
+function render() {
+  if (!DATA) return;
+  document.getElementById('updateTime').textContent = new Date().toLocaleString('zh-CN');
+  renderKPIs();
+  renderProgress();
+  renderTrendCharts();
+  renderAnchorTable();
+}
+
+// ── 上方 KPI 卡片（跟随商务切换）──
+function renderKPIs() {
+  const s = DATA.dabogroup.summary_by_zb[currentZb] || DATA.dabogroup.summary_by_zb['全部'];
+  const total = s['直播GMV'] || 0;
+  const paid = s['直播支付GMV'] || 0;
+  const settled = s['直播结算GMV'] || 0;
+  const refund = s['直播退款GMV'] || 0;
+  const count = s['达人数'] || 0;
+  const zbLabel = currentZb === '全部' ? '全达播组' : currentZb;
+  const html = `
+    <div class="kpi-card">
+      <div class="kpi-label">直播总成交金额</div>
+      <div class="kpi-value">${fmt(total, 'money')}</div>
+      <div class="kpi-sub">${zbLabel} · ${count} 位达人</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">直播支付GMV</div>
+      <div class="kpi-value">${fmt(paid, 'money')}</div>
+      <div class="kpi-sub">支付率 ${total > 0 ? ((paid/total)*100).toFixed(1) : '0'}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">直播结算GMV</div>
+      <div class="kpi-value green">${fmt(settled, 'money')}</div>
+      <div class="kpi-sub">结算率 ${total > 0 ? ((settled/total)*100).toFixed(1) : '0'}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">退款GMV</div>
+      <div class="kpi-value red">${fmt(refund, 'money')}</div>
+      <div class="kpi-sub">退款率 ${total > 0 ? ((refund/total)*100).toFixed(1) : '0'}%</div>
+    </div>
+  `;
+  document.getElementById('kpiGrid').innerHTML = html;
+}
+
+// ── 8月进度追踪（目标 GMV 跟随商务）──
+function renderProgress() {
+  const ps = document.getElementById('progressSection');
+  if (ps) ps.style.display = '';
+  const zbLabel = document.getElementById('progressZbLabel');
+  if (zbLabel) zbLabel.textContent = '· ' + (currentZb === '全部' ? '全达播组' : currentZb);
+  const targetInput = document.getElementById('targetGmvInput');
+  const stored = localStorage.getItem('dabogroupTarget_' + currentZb);
+  targetInput.value = stored != null ? stored : '1000';
+  updateProgress();
+}
+
+function updateProgress() {
+  const now = new Date();
+  const day = now.getDate();
+  const totalDays = 31;
+  const timePct = (day / totalDays) * 100;
+
+  document.getElementById('timeProgressBar').style.width = timePct.toFixed(1) + '%';
+  document.getElementById('timeProgressPct').textContent = timePct.toFixed(1) + '%';
+  document.getElementById('timeNowLabel').textContent = `今天: 8/${day}`;
+
+  const currentGmv = (DATA.dabogroup.summary_by_zb[currentZb]['直播GMV']) || 0;
+  const currentGmvWan = currentGmv / 10000;
+
+  const targetInput = document.getElementById('targetGmvInput');
+  const targetWan = parseFloat(targetInput.value) || 0;
+  if (targetWan > 0) localStorage.setItem('dabogroupTarget_' + currentZb, String(targetWan));
+
+  const gmvPct = targetWan > 0 ? (currentGmvWan / targetWan) * 100 : 0;
+  const gmvColor = gmvPct >= timePct ? '#22c55e' : gmvPct >= timePct * 0.8 ? '#f59e0b' : '#ef4444';
+
+  document.getElementById('gmvProgressBar').style.width = Math.min(gmvPct, 100).toFixed(1) + '%';
+  document.getElementById('gmvProgressBar').style.background = `linear-gradient(90deg, ${gmvColor}, ${gmvColor}dd)`;
+  document.getElementById('gmvProgressPct').textContent = gmvPct.toFixed(1) + '%';
+  document.getElementById('gmvProgressPct').style.color = gmvColor;
+  document.getElementById('gmvCurrentLabel').textContent = `当前 GMV(${currentZb === '全部' ? '全部' : currentZb}): ¥${currentGmvWan.toFixed(2)}万`;
+  document.getElementById('gmvTargetLabel').textContent = `目标(${currentZb === '全部' ? '全部' : currentZb}): ¥${targetWan.toFixed(0)}万`;
+
+  const expectedWan = (timePct / 100) * targetWan;
+  window.__expectedGmvWan = expectedWan;
+}
+
+function showExpectedGmv() {
+  const tooltip = document.getElementById('expectedGmvTooltip');
+  if (!tooltip || window.__expectedGmvWan == null) return;
+  tooltip.innerHTML = `当前时间进度下 <b style="color:var(--accent2);">应达成 GMV ≈ ¥${window.__expectedGmvWan.toFixed(2)}万</b>`;
+  tooltip.style.display = '';
+}
+
+function hideExpectedGmv() {
+  const tooltip = document.getElementById('expectedGmvTooltip');
+  if (tooltip) tooltip.style.display = 'none';
+}
+
+// ── 图表（总趋势 / 商务分天 / 业绩占比）──
+function renderTrendCharts() {
+  if (!DATA || !DATA.trend) return;
+  const t = DATA.trend;
+  const db = DATA.dabogroup;
+  const cc = getChartColors();
+  const dates = t.dates;
+  const isAll = currentZb === '全部';
+
+  const chartOpts = {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'top', labels: { color: cc.legend, font: { size: 11 }, boxWidth: 12, padding: 14, usePointStyle: true, pointStyle: 'circle' }},
+      tooltip: {
+        backgroundColor: cc.tooltipBg, titleColor: cc.tooltipTitle, bodyColor: cc.tooltipBody,
+        borderColor: cc.tooltipBorder, borderWidth: 1, padding: 10, cornerRadius: 8,
+        callbacks: { label: ctx => ctx.dataset.label + ': ¥' + ctx.parsed.y.toFixed(1) + '万' }
+      }
+    },
+    scales: {
+      x: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 10 },
+        callback: function(val, index, ticks) {
+          var label = this.getLabelForValue(val);
+          if (index > 0 && ticks[index - 1]) {
+            var prevLabel = this.getLabelForValue(ticks[index - 1].value);
+            if (prevLabel && label && label.split('/')[0] !== prevLabel.split('/')[0]) return label;
+          }
+          var step = Math.max(1, Math.ceil(ticks.length / 6));
+          if (index % step === 0 || index === ticks.length - 1) return label;
+          return '';
+        }
+      }},
+      y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 10 }, callback: v => v + '万' }}
+    }
+  };
+
+  // 1) 达播组每日总业绩趋势（占满第一行）
+  const totalTitle = document.getElementById('totalTrendTitle');
+  totalTitle.textContent = isAll ? '达播组每日总业绩趋势' : currentZb + ' · 每日总业绩趋势';
+  const gmvData = isAll ? t.daily_total_gmv : db.daily_by_zb[currentZb];
+  const paidData = isAll ? t.daily_total_paid : db.daily_paid_by_zb[currentZb];
+  const refundData = isAll ? t.daily_total_refund : db.daily_refund_by_zb[currentZb];
+  const totalCtx = document.getElementById('totalTrendChart').getContext('2d');
+  if (window.__totalChart) window.__totalChart.destroy();
+  window.__totalChart = new Chart(totalCtx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        { label: '成交金额', data: gmvData, borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.12)', borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6, fill: true, tension: 0.35 },
+        { label: '用户支付', data: paidData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.06)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.35 },
+        { label: '退款金额', data: refundData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 2, pointRadius: 2, borderDash: [5,3], fill: true, tension: 0.35 }
+      ]
+    },
+    options: {
+      ...chartOpts,
+      onClick: function(evt, elements) {
+        if (!elements || elements.length === 0) return;
+        showOverallDrill(elements[0].index);
+      }
+    }
+  });
+
+  // 2) 商务分天业绩（各商务支付GMV对比，选中商务高亮）
+  const personCtx = document.getElementById('personTrendChart').getContext('2d');
+  if (window.__personChart) window.__personChart.destroy();
+  const personDatasets = ZB_ORDER.map(c => ({
+    label: c,
+    data: db.daily_paid_by_zb[c] || [],
+    borderColor: ZB_COLORS[c],
+    backgroundColor: 'transparent',
+    borderWidth: isAll ? 2.2 : (currentZb === c ? 3.5 : 1),
+    pointRadius: isAll ? 2 : (currentZb === c ? 3 : 1),
+    pointHoverRadius: 6,
+    tension: 0.35,
+    borderDash: c === '其他' ? [4, 3] : undefined
+  }));
+  window.__personFocused = 'all';
+  window.__personChart = new Chart(personCtx, {
+    type: 'line',
+    data: { labels: dates, datasets: personDatasets },
+    options: {
+      ...chartOpts,
+      onClick: function(evt, elements) {
+        if (!elements || elements.length === 0) return;
+        const chart = window.__personChart;
+        if (!chart) return;
+        const datasetIdx = elements[0].datasetIndex;
+        const dataIdx = elements[0].index;
+        showPersonDrill(chart.data.datasets[datasetIdx].label, dataIdx);
+      }
+    }
+  });
+  document.querySelectorAll('.person-btn').forEach(btn => {
+    const isActive = btn.getAttribute('data-person') === 'all';
+    btn.classList.toggle('active', isActive);
+    btn.style.background = isActive ? 'var(--accent)' : 'transparent';
+    btn.style.color = isActive ? '#fff' : 'var(--text2)';
+  });
+
+  // 3) 业绩占比（全部→商务占比；选中商务→内部Top达人占比）
+  renderPie();
+}
+
+function renderPie() {
+  const db = DATA.dabogroup;
+  const cc = getChartColors();
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  if (window.__pieChart) window.__pieChart.destroy();
+  const titleEl = document.getElementById('pieCardTitle');
+  const subEl = document.getElementById('pieSubTitle');
+
+  let labels = [], values = [], colors = [], dids = [], clickAction = null;
+  if (currentZb === '全部') {
+    titleEl.textContent = '业绩占比';
+    subEl.textContent = '商务 GMV 占比';
+    const items = ZB_ORDER.filter(zb => (db.summary_by_zb[zb]['直播GMV'] || 0) > 0);
+    labels = items;
+    values = items.map(zb => db.summary_by_zb[zb]['直播GMV']);
+    colors = items.map(zb => ZB_COLORS[zb]);
+    dids = items.map(() => null);
+    clickAction = function(idx) { switchZb(labels[idx]); };
+  } else {
+    titleEl.textContent = currentZb + ' · 业绩占比';
+    subEl.textContent = '达人 GMV 占比 · Top 8';
+    const anchors = db.anchors.filter(a => a['归属商务'] === currentZb && (a['直播GMV'] || 0) > 0);
+    anchors.sort((a, b) => b['直播GMV'] - a['直播GMV']);
+    const top = anchors.slice(0, 8);
+    const restGmv = anchors.slice(8).reduce((s, a) => s + (a['直播GMV'] || 0), 0);
+    labels = top.map(a => a['主播昵称']);
+    values = top.map(a => a['直播GMV']);
+    colors = labels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
+    dids = top.map(a => a['主播抖音号']);
+    if (restGmv > 0) { labels.push('其他'); values.push(restGmv); colors.push('#9ca3af'); dids.push(null); }
+    clickAction = function(idx) {
+      const did = dids[idx];
+      if (did) showDrillDown(did, labels[idx]);
+    };
+  }
+
+  // 环心总 GMV 显示 + 图例位置自适应（≤7 项右侧，Top8+其他 9 项时放底部）
+  const pieTotal = values.reduce((a, b) => a + b, 0);
+  const pieTotalWan = (pieTotal / 10000).toFixed(0);
+  const legendPosition = labels.length > 7 ? 'bottom' : 'right';
+
+  window.__pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: currentTheme === 'light' ? '#ffffff' : '#1a1d27',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '58%',
+      onClick: function(evt, elements) {
+        if (!elements || elements.length === 0) return;
+        clickAction(elements[0].index);
+      },
+      plugins: {
+        pieCenter: {
+          show: true,
+          main: '¥' + pieTotalWan + '万',
+          sub: currentZb === '全部' ? '总 GMV' : currentZb + ' GMV'
+        },
+        legend: {
+          position: legendPosition,
+          labels: {
+            color: cc.legend, font: { size: 11 }, padding: 10, boxWidth: 12,
+            generateLabels: function(chart) {
+              var data = chart.data;
+              var total = data.datasets[0].data.reduce(function(a, b) { return a + b; }, 0);
+              return data.labels.map(function(label, i) {
+                var val = data.datasets[0].data[i];
+                var text = String(label).length > 10 ? String(label).slice(0, 10) + '…' : String(label);
+                return {
+                  text: text + '  ' + (total > 0 ? ((val / total) * 100).toFixed(1) : '0') + '%',
+                  fillStyle: data.datasets[0].backgroundColor[i],
+                  strokeStyle: data.datasets[0].backgroundColor[i],
+                  lineWidth: 0, hidden: false, index: i, pointStyle: 'circle', rotation: 0
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: cc.tooltipBg, titleColor: cc.tooltipTitle, bodyColor: cc.tooltipBody,
+          borderColor: cc.tooltipBorder, borderWidth: 1,
+          callbacks: {
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+              var pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : '0';
+              return ctx.label + ': ¥' + (ctx.parsed / 10000).toFixed(1) + '万 (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 达人列表 ──
+function getColType(col) {
+  if (!col) return '';
+  if (col.includes('GMV') || col.includes('收入') || col.includes('支出') || col.includes('利润') || col.includes('费用') || col.includes('佣金') || col.includes('服务费') || col.includes('投放') || col.includes('金额')) return 'money';
+  if (col.includes('率') || col.includes('占比')) return 'pct';
+  return '';
+}
+
+let draggedCol = null;
+function startDrag(col, evt) {
+  draggedCol = col;
+  evt.dataTransfer.effectAllowed = 'move';
+  evt.dataTransfer.setData('text/plain', col);
+  setTimeout(() => evt.target.style.opacity = '0.4', 0);
+}
+function endDrag(evt) {
+  evt.target.style.opacity = '1';
+  draggedCol = null;
+  document.querySelectorAll('thead th').forEach(th => { th.style.borderLeft = ''; th.style.borderRight = ''; });
+}
+function dragOver(col, evt) {
+  evt.preventDefault();
+  evt.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('thead th').forEach(th => { th.style.borderLeft = ''; th.style.borderRight = ''; });
+  const target = evt.currentTarget;
+  if (draggedCol && col !== draggedCol) {
+    const cols = getCols();
+    const draggedIdx = cols.indexOf(draggedCol);
+    const targetIdx = cols.indexOf(col);
+    if (draggedIdx < targetIdx) target.style.borderRight = '2px solid #818cf8';
+    else target.style.borderLeft = '2px solid #818cf8';
+  }
+}
+function dropCol(targetCol, evt) {
+  evt.preventDefault();
+  if (!draggedCol || draggedCol === targetCol) return;
+  const cols = getCols();
+  const fromIdx = cols.indexOf(draggedCol);
+  const toIdx = cols.indexOf(targetCol);
+  if (fromIdx === -1 || toIdx === -1) return;
+  cols.splice(fromIdx, 1);
+  cols.splice(toIdx, 0, draggedCol);
+  renderAnchorTable();
+}
+
+let resizeState = null;
+function initResize(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const th = e.currentTarget.closest('th');
+  if (!th) return;
+  resizeState = { startX: e.clientX, startWidth: th.offsetWidth, th: th };
+  const handle = th.querySelector('.col-resize-handle');
+  if (handle) handle.classList.add('active');
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+}
+function onResizeMove(e) {
+  if (!resizeState) return;
+  const delta = e.clientX - resizeState.startX;
+  const newWidth = Math.max(50, resizeState.startWidth + delta);
+  resizeState.th.style.width = newWidth + 'px';
+  resizeState.th.style.minWidth = newWidth + 'px';
+}
+function onResizeEnd() {
+  if (!resizeState) return;
+  const handle = resizeState.th.querySelector('.col-resize-handle');
+  if (handle) handle.classList.remove('active');
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  saveColumnWidths();
+  resizeState = null;
+  document.removeEventListener('mousemove', onResizeMove);
+  document.removeEventListener('mouseup', onResizeEnd);
+}
+function saveColumnWidths() {
+  const widths = {};
+  document.querySelectorAll('#anchorHead th').forEach(th => {
+    const col = th.getAttribute('data-col') || '#';
+    widths[col] = th.offsetWidth;
+  });
+  localStorage.setItem('dabogroupColWidths', JSON.stringify(widths));
+}
+function applyColumnWidths() {
+  const saved = localStorage.getItem('dabogroupColWidths');
+  if (!saved) return;
+  try {
+    const widths = JSON.parse(saved);
+    document.querySelectorAll('#anchorHead th').forEach(th => {
+      const col = th.getAttribute('data-col') || '#';
+      if (widths[col]) { th.style.width = widths[col] + 'px'; th.style.minWidth = widths[col] + 'px'; }
+    });
+  } catch(e) {}
+}
+
+function renderAnchorTable() {
+  let headHtml = '<th data-col="#"><span>#</span><div class="col-resize-handle" onmousedown="initResize(event)"></div></th>';
+  const cols = getCols();
+  const centerFrom = 1;
+  cols.forEach((col, idx) => {
+    let isActive = sortCol === col;
+    let arrow = isActive ? (sortDir === -1 ? '▼' : '▲') : '▼';
+    let alignStyle = idx >= centerFrom ? 'text-align: center;' : '';
+    headHtml += `<th data-col="${col}" draggable="true" ondragstart="startDrag('${col}', event)" ondragend="endDrag(event)" ondragover="dragOver('${col}', event)" ondrop="dropCol('${col}', event)" onclick="sortBy('${col}')" style="cursor: grab;${alignStyle}"><span>${colLabel(col)}</span><span class="sort-ind ${isActive ? 'active' : ''}">${arrow}</span><div class="col-resize-handle" onmousedown="initResize(event)"></div></th>`;
+  });
+  document.getElementById('anchorHead').innerHTML = headHtml;
+  applyColumnWidths();
+
+  let anchors = [...DATA.dabogroup.anchors];
+  anchors.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 'ROI') {
+      const vaGmv = parseFloat(a['直播GMV']) || 0;
+      const vaAd = parseFloat(a['投放消耗金额']) || 0;
+      const vbGmv = parseFloat(b['直播GMV']) || 0;
+      const vbAd = parseFloat(b['投放消耗金额']) || 0;
+      va = vaAd > 0 ? vaGmv / vaAd : 0;
+      vb = vbAd > 0 ? vbGmv / vbAd : 0;
+    } else {
+      va = parseFloat(a[sortCol]) || 0;
+      vb = parseFloat(b[sortCol]) || 0;
+    }
+    return (va - vb) * sortDir;
+  });
+
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const zbVal = document.getElementById('zbFilter')?.value || '';
+  if (currentZb !== '全部' || search || zbVal) {
+    anchors = anchors.filter(a => {
+      let match = true;
+      if (currentZb !== '全部') match = match && (a['归属商务'] === currentZb);
+      if (search) match = match && ((a['主播昵称']||'').toLowerCase().includes(search) || (a['主播抖音号']||'').toString().includes(search));
+      if (zbVal && zbVal !== '全部') match = match && (a['归属商务'] === zbVal);
+      return match;
+    });
+  }
+
+  document.getElementById('anchorCountLabel').textContent = '共 ' + anchors.length + ' 位达人';
+
+  const maxGMV = Math.max(1, ...DATA.dabogroup.anchors.map(a => parseFloat(a['直播GMV']) || 0));
+
+  let bodyHtml = '';
+  anchors.forEach((a, i) => {
+    const rank = i + 1;
+    let rankClass = rank <= 3 ? `rank-${rank}` : 'rank-n';
+    const douyinId = a['主播抖音号'] || '';
+    bodyHtml += `<tr data-douyin="${douyinId}" data-name="${a['主播昵称'] || ''}">`;
+    bodyHtml += `<td><span class="rank-badge ${rankClass}">${rank}</span></td>`;
+    getCols().forEach((col, colIdx) => {
+      let val = a[col];
+      let type = getColType(col);
+      let alignStyle = colIdx >= centerFrom ? 'text-align: center;' : '';
+      if (col === '主播昵称') {
+        const storedNote = localStorage.getItem('note_' + douyinId);
+        const note = storedNote !== null ? storedNote : '';
+        bodyHtml += `<td><div style="font-weight:500">${val || '-'}</div><input type="text" value="${(note||'').replace(/"/g, '&quot;')}" placeholder="添加备注..." onchange="saveNote('${douyinId}', this.value)" style="width:100%;margin-top:3px;padding:2px 4px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text2);font-size:11px;outline:none;" onfocus="this.style.borderColor='var(--accent)';this.style.background='var(--bg)'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>`;
+      } else if (col === '归属商务') {
+        const c = ZB_COLORS[val] || '#6b7280';
+        bodyHtml += `<td style="${alignStyle}"><span class="tag" style="background:${c}22;color:${c};">${val || '-'}</span></td>`;
+      } else if (col === '直播GMV' && val && maxGMV > 0) {
+        let pct = ((parseFloat(val)/maxGMV)*100).toFixed(0);
+        const did = String(douyinId).replace(/'/g, "\\'");
+        const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
+        bodyHtml += `<td class="bar-cell" style="cursor:pointer;${alignStyle}" onclick="showDrillDown('${did}', '${dname}')"><span style="position:relative;z-index:1;font-weight:500;">${fmt(val, type)}</span><div class="bar-bg" style="width:${pct}%"></div></td>`;
+      } else if (col === '结算率') {
+        let num = parseFloat(val);
+        let cls = num >= 0.4 ? 'tag-green' : num >= 0.2 ? 'tag-orange' : 'tag-red';
+        bodyHtml += `<td style="${alignStyle}"><span class="tag ${cls}" style="font-size: 15px; font-weight: 600;">${fmt(val, 'pct')}</span></td>`;
+      } else if (col === 'ROI') {
+        const gmv = parseFloat(a['直播GMV']) || 0;
+        const adCost = parseFloat(a['投放消耗金额']) || 0;
+        const roi = adCost > 0 ? (gmv / adCost) : 0;
+        const did = String(douyinId).replace(/'/g, "\\'");
+        const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
+        let display = roi > 0 ? roi.toFixed(1) : '-';
+        bodyHtml += `<td style="cursor:pointer; font-size: 15px; font-weight: 600;${alignStyle}" onclick="showRoiDrill('${did}', '${dname}')">${display}</td>`;
+      } else {
+        bodyHtml += `<td style="${alignStyle}">${fmt(val, type)}</td>`;
+      }
+    });
+    bodyHtml += '</tr>';
+  });
+  document.getElementById('anchorBody').innerHTML = bodyHtml;
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  renderAnchorTable();
+}
+
+function filterAnchors() { renderAnchorTable(); }
+
+// ── 下钻：达人每日图表 ──
+function showDrillDown(douyinId, name) {
+  if (!douyinId) return;
+  const cc = getChartColors();
+  const daily = (DATA.trend && DATA.trend.anchor_daily_paid) ? DATA.trend.anchor_daily_paid[douyinId] : null;
+  if (!daily || Object.keys(daily).length === 0) {
+    alert(name + ' 暂无分天支付数据');
+    return;
+  }
+  document.getElementById('drillTitle').textContent = name + ' - 每日支付 GMV 趋势';
+  document.getElementById('drillModal').style.display = 'flex';
+  const dates = DATA.trend.dates;
+  const values = dates.map(d => daily[d] || 0);
+  const ctx = document.getElementById('drillChart').getContext('2d');
+  if (window.__drillChart) window.__drillChart.destroy();
+  window.__drillChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: '支付 GMV（万）', data: values,
+        borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.15)',
+        borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 7, fill: true, tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: cc.tooltipBg, titleColor: cc.tooltipTitle, bodyColor: cc.tooltipBody, borderColor: cc.tooltipBorder, borderWidth: 1, callbacks: { label: ctx => '¥' + ctx.parsed.y.toFixed(2) + '万' } }
+      },
+      scales: {
+        x: smartXAxis(cc, 11),
+        y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 }, callback: v => v + '万' } }
+      }
+    }
+  });
+}
+
+function showRoiDrill(douyinId, name) {
+  if (!douyinId) return;
+  const cc = getChartColors();
+  const daily = (DATA.trend && DATA.trend.anchor_daily_roi) ? DATA.trend.anchor_daily_roi[douyinId] : null;
+  if (!daily || Object.keys(daily).length === 0) {
+    alert(name + ' 暂无分天 ROI 数据（无投放记录）');
+    return;
+  }
+  document.getElementById('drillTitle').textContent = name + ' - 每日 ROI 趋势（GMV / 投放消耗）';
+  document.getElementById('drillModal').style.display = 'flex';
+  const dates = DATA.trend.dates;
+  const values = dates.map(d => daily[d] || 0);
+  const ctx = document.getElementById('drillChart').getContext('2d');
+  if (window.__drillChart) window.__drillChart.destroy();
+  window.__drillChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'ROI', data: values,
+        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
+        borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 7, fill: true, tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: cc.tooltipBg, titleColor: cc.tooltipTitle, bodyColor: cc.tooltipBody, borderColor: cc.tooltipBorder, borderWidth: 1, callbacks: { label: ctx => 'ROI: ' + ctx.parsed.y.toFixed(2) } }
+      },
+      scales: {
+        x: smartXAxis(cc, 11),
+        y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function closeDrillModal() { document.getElementById('drillModal').style.display = 'none'; }
+
+// ── 下钻：日环比变化表（总趋势 / 商务分天共用）──
+function buildDrillRows(anchors, dateIndex, prevDate) {
+  const rows = [];
+  for (const anchor of anchors) {
+    const todayVal = anchor.daily_paid[dateIndex] || 0;
+    const yesterdayVal = (prevDate && dateIndex > 0) ? (anchor.daily_paid[dateIndex - 1] || 0) : 0;
+    const change = prevDate ? (todayVal - yesterdayVal) : 0;
+    if (Math.abs(change) >= 0.01) {
+      rows.push({ name: anchor.name, douyin_id: anchor.douyin_id, today: todayVal, yesterday: yesterdayVal, change: change });
+    }
+  }
+  rows.sort((a, b) => a.change - b.change);
+  return rows;
+}
+
+function openPersonDrillModal(headingName, rows, todayTotal, yesterdayTotal, prevDate, clickedDate) {
+  const totalChange = prevDate ? (todayTotal - yesterdayTotal) : 0;
+  const changeArrow = totalChange >= 0 ? '↑' : '↓';
+  const changeCls = totalChange >= 0 ? 'drill-up' : 'drill-down';
+  const changeSign = totalChange >= 0 ? '+' : '';
+  let titleHtml = headingName;
+  if (prevDate) {
+    titleHtml += ' · ' + clickedDate + ' 较 ' + prevDate + ' <span class="' + changeCls + '">' + changeArrow + ' ' + changeSign + totalChange.toFixed(2) + '万</span>';
+  } else {
+    titleHtml += ' · ' + clickedDate + '（首日，无前日对比）';
+  }
+  document.getElementById('personDrillTitle').innerHTML = titleHtml;
+  document.getElementById('personDrillSubtitle').textContent = '显示变化量 ≥ 0.01万的 ' + rows.length + ' 位达人';
+  document.getElementById('personDrillHead').innerHTML =
+    '<th style="width:35%;text-align:left;">达人名称</th>' +
+    '<th style="width:20%;">当日(' + clickedDate + ')</th>' +
+    '<th style="width:20%;">前日(' + (prevDate || '--') + ')</th>' +
+    '<th style="width:25%;">变化量</th>';
+  let tbodyHtml = '';
+  if (rows.length === 0) {
+    tbodyHtml = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text2);">暂无显著变化（≥ 0.01万）的达人数据</td></tr>';
+  } else {
+    for (const row of rows) {
+      const cls = row.change > 0 ? 'drill-up' : (row.change < 0 ? 'drill-down' : '');
+      const sign = row.change >= 0 ? '+' : '';
+      tbodyHtml += '<tr><td style="text-align:left;">' + row.name + '</td><td>' + row.today.toFixed(2) + '万</td><td>' + (prevDate ? row.yesterday.toFixed(2) + '万' : '--') + '</td><td class="' + cls + '">' + sign + row.change.toFixed(2) + '万</td></tr>';
+    }
+  }
+  document.getElementById('personDrillBody').innerHTML = tbodyHtml;
+  window.__personDrillRows = rows;
+  window.__personDrillPrevDate = prevDate;
+  const filterBar = document.getElementById('personDrillFilter');
+  filterBar.style.display = 'flex';
+  filterBar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === 'all'));
+  document.getElementById('personDrillModal').style.display = 'flex';
+}
+
+function showOverallDrill(dateIndex) {
+  const db = DATA.dabogroup;
+  const all = db.all_anchor_daily || [];
+  if (!all.length) { alert('暂无达人明细数据'); return; }
+  const zb = currentZb;
+  const anchors = zb === '全部' ? all : all.filter(a => a.zb === zb);
+  const dates = DATA.trend.dates;
+  const clickedDate = dates[dateIndex] || '--';
+  const prevDate = dateIndex > 0 ? dates[dateIndex - 1] : null;
+  const paidArr = zb === '全部' ? (DATA.trend.daily_total_paid || []) : (db.daily_paid_by_zb[zb] || []);
+  const todayTotal = paidArr[dateIndex] || 0;
+  const yesterdayTotal = prevDate ? (paidArr[dateIndex - 1] || 0) : 0;
+  const rows = buildDrillRows(anchors, dateIndex, prevDate);
+  openPersonDrillModal(zb === '全部' ? '全部达人' : zb, rows, todayTotal, yesterdayTotal, prevDate, clickedDate);
+}
+
+function showPersonDrill(personName, dateIndex) {
+  const db = DATA.dabogroup;
+  const anchors = (db.all_anchor_daily || []).filter(a => a.zb === personName);
+  if (!anchors.length) { alert(personName + ' 暂无达人明细数据'); return; }
+  const dates = DATA.trend.dates;
+  const clickedDate = dates[dateIndex] || '--';
+  const prevDate = dateIndex > 0 ? dates[dateIndex - 1] : null;
+  const paidArr = db.daily_paid_by_zb[personName] || [];
+  const todayTotal = paidArr[dateIndex] || 0;
+  const yesterdayTotal = prevDate ? (paidArr[dateIndex - 1] || 0) : 0;
+  const rows = buildDrillRows(anchors, dateIndex, prevDate);
+  openPersonDrillModal(personName, rows, todayTotal, yesterdayTotal, prevDate, clickedDate);
+}
+
+function filterPersonDrill(filter) {
+  const allRows = window.__personDrillRows || [];
+  const prevDate = window.__personDrillPrevDate;
+  let filtered = allRows;
+  if (filter === 'down') filtered = allRows.filter(r => r.change < 0);
+  else if (filter === 'up') filtered = allRows.filter(r => r.change > 0).reverse();
+  document.querySelectorAll('.person-drill-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-filter') === filter);
+  });
+  let tbodyHtml = '';
+  if (filtered.length === 0) {
+    const label = filter === 'down' ? '下降' : (filter === 'up' ? '上涨' : '显著变化');
+    tbodyHtml = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text2);">暂无' + label + '的达人数据</td></tr>';
+  } else {
+    for (const row of filtered) {
+      const cls = row.change > 0 ? 'drill-up' : (row.change < 0 ? 'drill-down' : '');
+      const sign = row.change >= 0 ? '+' : '';
+      tbodyHtml += '<tr><td style="text-align:left;">' + row.name + '</td><td>' + row.today.toFixed(2) + '万</td><td>' + (prevDate ? row.yesterday.toFixed(2) + '万' : '--') + '</td><td class="' + cls + '">' + sign + row.change.toFixed(2) + '万</td></tr>';
+    }
+  }
+  document.getElementById('personDrillBody').innerHTML = tbodyHtml;
+  document.getElementById('personDrillSubtitle').textContent = '共 ' + allRows.length + ' 位达人，筛选显示 ' + filtered.length + ' 位';
+}
+
+function closePersonDrillModal() { document.getElementById('personDrillModal').style.display = 'none'; }
+
+// ── 商务分天图聚焦按钮 ──
+function focusPerson(person) {
+  const chart = window.__personChart;
+  if (!chart) return;
+  if (!window.__personFocused) window.__personFocused = 'all';
+  const newFocus = (window.__personFocused === person) ? 'all' : person;
+  window.__personFocused = newFocus;
+  document.querySelectorAll('.person-btn').forEach(btn => {
+    const isActive = btn.getAttribute('data-person') === newFocus;
+    btn.classList.toggle('active', isActive);
+    btn.style.background = isActive ? 'var(--accent)' : 'transparent';
+    btn.style.color = isActive ? '#fff' : 'var(--text2)';
+  });
+  if (newFocus === 'all') {
+    chart.data.datasets.forEach((_, i) => { chart.getDatasetMeta(i).hidden = false; });
+  } else {
+    chart.data.datasets.forEach((ds, i) => { chart.getDatasetMeta(i).hidden = (ds.label !== newFocus); });
+  }
+  chart.update();
+}
+
+function saveNote(douyinId, value) {
+  if (douyinId) localStorage.setItem('note_' + douyinId, value || '');
+}
+</script>
+</body>
+</html>
