@@ -8,8 +8,8 @@
   - 归属商务：按优先级 久酒>雅宁>奥易>檀雅>星辞 匹配，无归属归「其他」
     （星辞业绩 sheet 即全量总花名册，故排最后，只保留专属它的达人）
   - 月度指标按当月聚合；趋势图取近 30 天滚动窗口（单位：万）
-  - 日流水中「列错位」脏行整行剔除（整数计数列出现小数，约占 23%）
-  - ROI = 直播支付GMV ÷ 投放消耗金额（消耗取 店铺绑定 / 店铺被投 的较大值）
+  - 日流水统计全部原始行；列错位脏行不剔除（如需启用过滤见 is_corrupt_row）
+  - ROI = 直播GMV ÷ 投放消耗金额（消耗取 店铺绑定 / 店铺被投 的较大值）
 """
 
 import json
@@ -46,6 +46,7 @@ def safe_float(v):
 # 必然为整数的计数列：O评论次数 / T带货商品数 / AC成交件数 / AG退款人数 / AU净成交订单数 / AW1小时退款订单数
 # 上游 Excel 存在一批「整行列错位」的脏数据（约 23%），特征是这些整数列里出现小数，
 # 且成交金额(Z) 极小、用户支付金额(AA) 极大（倒挂），会污染 GMV / 支付 / 消耗 / ROI。整行剔除。
+# ⚠ 当前未启用：按需求改为统计全部原始行（见下方 run() 中被注释的调用），保留本函数以便随时恢复。
 CORRUPT_INT_COLS = (15, 20, 29, 33, 47, 49)
 
 
@@ -113,8 +114,6 @@ def run():
     live_name_map = {}  # 抖音号 → 昵称（日流水覆盖最全）
 
     all_dates_set = set()
-    corrupt_rows = 0
-    skipped_corrupt_ids = set()
 
     for r in range(2, ws_live.max_row + 1):
         douyin_id_raw = ws_live.cell(r, 3).value  # C列
@@ -124,11 +123,9 @@ def run():
         if not douyin_id_raw or not dt_val:
             continue
 
-        # 剔除列错位脏行（否则会虚增支付/成交，并让 ROI 分母失真）
-        if is_corrupt_row(ws_live, r):
-            corrupt_rows += 1
-            skipped_corrupt_ids.add(str(douyin_id_raw))
-            continue
+        # 列错位脏行过滤已停用：改为统计全部原始行（如需恢复，取消下面两行注释）
+        # if is_corrupt_row(ws_live, r):
+        #     continue
 
         douyin_id = str(douyin_id_raw)
         date_key = str(dt_val)[:10].replace('/', '-')
@@ -156,8 +153,6 @@ def run():
         daily_duration[douyin_id][date_key] += duration
 
     all_dates = sorted(all_dates_set)
-    if corrupt_rows:
-        print(f'  ⚠ 已剔除列错位脏行: {corrupt_rows} 行（涉及 {len(skipped_corrupt_ids)} 个达人）')
 
     # ═══════════════════════════════════════════
     # === 3. 确定当前月份 ===
@@ -229,7 +224,7 @@ def run():
             '直播退款GMV': refund_val,
             '直播结算GMV': settle_val,
             '结算率': round(settle_val / gmv_val, 4) if gmv_val > 0 else 0,
-            'ROI': round(paid_val / ad_val, 2) if ad_val > 0 else 0,
+            'ROI': round(gmv_val / ad_val, 2) if ad_val > 0 else 0,
             '佣金支出': commission_val,
             '投放消耗金额': ad_val,
         }
@@ -304,12 +299,12 @@ def run():
         }
 
     anchor_daily_roi = {}
-    for douyin_id in daily_paid:
+    for douyin_id in daily_gmv:
         anchor_daily_roi[douyin_id] = {}
         for d in trend_dates_full:
-            p = daily_paid[douyin_id].get(d, 0)
+            g = daily_gmv[douyin_id].get(d, 0)
             a = daily_ad.get(douyin_id, {}).get(d, 0)
-            anchor_daily_roi[douyin_id][date_map[d]] = round(p / a, 2) if a > 0 else 0
+            anchor_daily_roi[douyin_id][date_map[d]] = round(g / a, 2) if a > 0 else 0
 
     # ═══════════════════════════════════════════
     # === 8. 达人列表 / 下探 / Top5 ===
