@@ -921,7 +921,7 @@ function renderAnchorTable() {
 
   document.getElementById('anchorCountLabel').textContent = '共 ' + anchors.length + ' 位达人';
 
-  const maxGMV = Math.max(1, ...DATA.dabogroup.anchors.map(a => parseFloat(a['直播GMV']) || 0));
+  const maxPaid = Math.max(1, ...DATA.dabogroup.anchors.map(a => parseFloat(a['直播支付GMV']) || 0));
 
   let bodyHtml = '';
   anchors.forEach((a, i) => {
@@ -941,8 +941,8 @@ function renderAnchorTable() {
       } else if (col === '归属商务') {
         const c = ZB_COLORS[val] || '#6b7280';
         bodyHtml += `<td style="${alignStyle}"><span class="tag" style="background:${c}22;color:${c};">${val || '-'}</span></td>`;
-      } else if (col === '直播GMV' && val && maxGMV > 0) {
-        let pct = ((parseFloat(val)/maxGMV)*100).toFixed(0);
+      } else if (col === '直播支付GMV' && val && maxPaid > 0) {
+        let pct = ((parseFloat(val)/maxPaid)*100).toFixed(0);
         const did = String(douyinId).replace(/'/g, "\\'");
         const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
         bodyHtml += `<td class="bar-cell" style="cursor:pointer;${alignStyle}" onclick="showDrillDown('${did}', '${dname}')"><span style="position:relative;z-index:1;font-weight:500;">${fmt(val, type)}</span><div class="bar-bg" style="width:${pct}%"></div></td>`;
