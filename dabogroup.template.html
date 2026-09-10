@@ -903,12 +903,12 @@ function renderAnchorTable() {
   anchors.sort((a, b) => {
     let va, vb;
     if (sortCol === 'ROI') {
-      const vaGmv = parseFloat(a['直播GMV']) || 0;
+      const vaPaid = parseFloat(a['直播支付GMV']) || 0;
       const vaAd = parseFloat(a['投放消耗金额']) || 0;
-      const vbGmv = parseFloat(b['直播GMV']) || 0;
+      const vbPaid = parseFloat(b['直播支付GMV']) || 0;
       const vbAd = parseFloat(b['投放消耗金额']) || 0;
-      va = vaAd > 0 ? vaGmv / vaAd : 0;
-      vb = vbAd > 0 ? vbGmv / vbAd : 0;
+      va = vaAd > 0 ? vaPaid / vaAd : 0;
+      vb = vbAd > 0 ? vbPaid / vbAd : 0;
     } else {
       va = parseFloat(a[sortCol]) || 0;
       vb = parseFloat(b[sortCol]) || 0;
@@ -960,9 +960,9 @@ function renderAnchorTable() {
         let cls = num >= 0.4 ? 'tag-green' : num >= 0.2 ? 'tag-orange' : 'tag-red';
         bodyHtml += `<td style="${alignStyle}"><span class="tag ${cls}" style="font-size: 15px; font-weight: 600;">${fmt(val, 'pct')}</span></td>`;
       } else if (col === 'ROI') {
-        const gmv = parseFloat(a['直播GMV']) || 0;
+        const paid = parseFloat(a['直播支付GMV']) || 0;
         const adCost = parseFloat(a['投放消耗金额']) || 0;
-        const roi = adCost > 0 ? (gmv / adCost) : 0;
+        const roi = adCost > 0 ? (paid / adCost) : 0;
         const did = String(douyinId).replace(/'/g, "\\'");
         const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
         let display = roi > 0 ? roi.toFixed(1) : '-';
@@ -1031,7 +1031,7 @@ function showRoiDrill(douyinId, name) {
     alert(name + ' 暂无分天 ROI 数据（无投放记录）');
     return;
   }
-  document.getElementById('drillTitle').textContent = name + ' - 每日 ROI 趋势（GMV / 投放消耗）';
+  document.getElementById('drillTitle').textContent = name + ' - 每日 ROI 趋势（支付GMV / 投放消耗）';
   document.getElementById('drillModal').style.display = 'flex';
   const dates = DATA.trend.dates;
   const values = dates.map(d => daily[d] || 0);
