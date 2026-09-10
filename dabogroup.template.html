@@ -350,7 +350,7 @@ const ZB_COLORS = {
   '奥易': '#ec4899', '檀雅': '#06b6d4', '其他': '#9ca3af'
 };
 const PIE_COLORS = ['#818cf8','#22c55e','#f59e0b','#ec4899','#06b6d4','#a78bfa','#f97316','#3b82f6','#14b8a6','#e879f9'];
-const DISPLAY_COLS = ['主播昵称', '归属商务', '直播GMV', '直播支付GMV', '直播退款GMV', '直播结算GMV', '结算率', 'ROI', '佣金支出', '投放消耗金额'];
+const DISPLAY_COLS = ['主播昵称', '归属商务', '直播GMV', '直播支付GMV', '直播退款GMV', '直播结算GMV', '结算率', '佣金支出', '投放消耗金额'];
 const COL_LABELS = { '直播GMV': '直播总成交金额' };
 function colLabel(col) { return COL_LABELS[col] || col; }
 function getCols() { return DISPLAY_COLS; }
@@ -901,18 +901,8 @@ function renderAnchorTable() {
 
   let anchors = [...DATA.dabogroup.anchors];
   anchors.sort((a, b) => {
-    let va, vb;
-    if (sortCol === 'ROI') {
-      const vaGmv = parseFloat(a['直播GMV']) || 0;
-      const vaAd = parseFloat(a['投放消耗金额']) || 0;
-      const vbGmv = parseFloat(b['直播GMV']) || 0;
-      const vbAd = parseFloat(b['投放消耗金额']) || 0;
-      va = vaAd > 0 ? vaGmv / vaAd : 0;
-      vb = vbAd > 0 ? vbGmv / vbAd : 0;
-    } else {
-      va = parseFloat(a[sortCol]) || 0;
-      vb = parseFloat(b[sortCol]) || 0;
-    }
+    const va = parseFloat(a[sortCol]) || 0;
+    const vb = parseFloat(b[sortCol]) || 0;
     return (va - vb) * sortDir;
   });
 
@@ -959,14 +949,6 @@ function renderAnchorTable() {
         let num = parseFloat(val);
         let cls = num >= 0.4 ? 'tag-green' : num >= 0.2 ? 'tag-orange' : 'tag-red';
         bodyHtml += `<td style="${alignStyle}"><span class="tag ${cls}" style="font-size: 15px; font-weight: 600;">${fmt(val, 'pct')}</span></td>`;
-      } else if (col === 'ROI') {
-        const gmv = parseFloat(a['直播GMV']) || 0;
-        const adCost = parseFloat(a['投放消耗金额']) || 0;
-        const roi = adCost > 0 ? (gmv / adCost) : 0;
-        const did = String(douyinId).replace(/'/g, "\\'");
-        const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
-        let display = roi > 0 ? roi.toFixed(1) : '-';
-        bodyHtml += `<td style="cursor:pointer; font-size: 15px; font-weight: 600;${alignStyle}" onclick="showRoiDrill('${did}', '${dname}')">${display}</td>`;
       } else {
         bodyHtml += `<td style="${alignStyle}">${fmt(val, type)}</td>`;
       }
@@ -1018,44 +1000,6 @@ function showDrillDown(douyinId, name) {
       scales: {
         x: smartXAxis(cc, 11),
         y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 }, callback: v => v + '万' } }
-      }
-    }
-  });
-}
-
-function showRoiDrill(douyinId, name) {
-  if (!douyinId) return;
-  const cc = getChartColors();
-  const daily = (DATA.trend && DATA.trend.anchor_daily_roi) ? DATA.trend.anchor_daily_roi[douyinId] : null;
-  if (!daily || Object.keys(daily).length === 0) {
-    alert(name + ' 暂无分天 ROI 数据（无投放记录）');
-    return;
-  }
-  document.getElementById('drillTitle').textContent = name + ' - 每日 ROI 趋势（GMV / 投放消耗）';
-  document.getElementById('drillModal').style.display = 'flex';
-  const dates = DATA.trend.dates;
-  const values = dates.map(d => daily[d] || 0);
-  const ctx = document.getElementById('drillChart').getContext('2d');
-  if (window.__drillChart) window.__drillChart.destroy();
-  window.__drillChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: 'ROI', data: values,
-        borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)',
-        borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 7, fill: true, tension: 0.35
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { backgroundColor: cc.tooltipBg, titleColor: cc.tooltipTitle, bodyColor: cc.tooltipBody, borderColor: cc.tooltipBorder, borderWidth: 1, callbacks: { label: ctx => 'ROI: ' + ctx.parsed.y.toFixed(2) } }
-      },
-      scales: {
-        x: smartXAxis(cc, 11),
-        y: { grid: { color: cc.grid }, ticks: { color: cc.tick, font: { size: 11 } } }
       }
     }
   });
