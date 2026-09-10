@@ -341,7 +341,7 @@ tbody tr:last-child td { border-bottom: none; }
 let DATA = null;
 let currentZb = '全部';
 let currentTheme = 'dark';
-let sortCol = '直播GMV';
+let sortCol = '直播支付GMV';
 let sortDir = -1;
 
 const ZB_ORDER = ['星辞', '雅宁', '久酒', '奥易', '檀雅', '其他'];
@@ -506,24 +506,23 @@ function renderKPIs() {
   const zbLabel = currentZb === '全部' ? '全达播组' : currentZb;
   const html = `
     <div class="kpi-card">
-      <div class="kpi-label">直播总成交金额</div>
-      <div class="kpi-value">${fmt(total, 'money')}</div>
+      <div class="kpi-label">直播支付GMV</div>
+      <div class="kpi-value">${fmt(paid, 'money')}</div>
       <div class="kpi-sub">${zbLabel} · ${count} 位达人</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">直播支付GMV</div>
-      <div class="kpi-value">${fmt(paid, 'money')}</div>
-      <div class="kpi-sub">支付率 ${total > 0 ? ((paid/total)*100).toFixed(1) : '0'}%</div>
+      <div class="kpi-label">直播总成交金额</div>
+      <div class="kpi-value">${fmt(total, 'money')}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">直播结算GMV</div>
       <div class="kpi-value green">${fmt(settled, 'money')}</div>
-      <div class="kpi-sub">结算率 ${total > 0 ? ((settled/total)*100).toFixed(1) : '0'}%</div>
+      <div class="kpi-sub">结算率 ${paid > 0 ? ((settled/paid)*100).toFixed(1) : '0'}%</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">退款GMV</div>
       <div class="kpi-value red">${fmt(refund, 'money')}</div>
-      <div class="kpi-sub">退款率 ${total > 0 ? ((refund/total)*100).toFixed(1) : '0'}%</div>
+      <div class="kpi-sub">退款率 ${paid > 0 ? ((refund/paid)*100).toFixed(1) : '0'}%</div>
     </div>
   `;
   document.getElementById('kpiGrid').innerHTML = html;
@@ -551,7 +550,7 @@ function updateProgress() {
   document.getElementById('timeProgressPct').textContent = timePct.toFixed(1) + '%';
   document.getElementById('timeNowLabel').textContent = `今天: 9/${day}`;
 
-  const currentGmv = (DATA.dabogroup.summary_by_zb[currentZb]['直播GMV']) || 0;
+  const currentGmv = (DATA.dabogroup.summary_by_zb[currentZb]['直播支付GMV']) || 0;
   const currentGmvWan = currentGmv / 10000;
 
   const targetInput = document.getElementById('targetGmvInput');
@@ -565,7 +564,7 @@ function updateProgress() {
   document.getElementById('gmvProgressBar').style.background = `linear-gradient(90deg, ${gmvColor}, ${gmvColor}dd)`;
   document.getElementById('gmvProgressPct').textContent = gmvPct.toFixed(1) + '%';
   document.getElementById('gmvProgressPct').style.color = gmvColor;
-  document.getElementById('gmvCurrentLabel').textContent = `当前 GMV(${currentZb === '全部' ? '全部' : currentZb}): ¥${currentGmvWan.toFixed(2)}万`;
+  document.getElementById('gmvCurrentLabel').textContent = `当前支付GMV(${currentZb === '全部' ? '全部' : currentZb}): ¥${currentGmvWan.toFixed(2)}万`;
   document.getElementById('gmvTargetLabel').textContent = `目标(${currentZb === '全部' ? '全部' : currentZb}): ¥${targetWan.toFixed(0)}万`;
 
   const expectedWan = (timePct / 100) * targetWan;
@@ -634,9 +633,9 @@ function renderTrendCharts() {
     data: {
       labels: dates,
       datasets: [
-        { label: '成交金额', data: gmvData, borderColor: '#818cf8', backgroundColor: 'rgba(129,140,248,0.12)', borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6, fill: true, tension: 0.35 },
-        { label: '用户支付', data: paidData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.06)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.35 },
-        { label: '退款金额', data: refundData, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 2, pointRadius: 2, borderDash: [5,3], fill: true, tension: 0.35 }
+        { label: '用户支付', data: paidData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.18)', borderWidth: 3, pointRadius: 3, pointHoverRadius: 6, fill: true, tension: 0.35 },
+        { label: '成交金额', data: gmvData, borderColor: 'rgba(129,140,248,0.55)', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 5, fill: false, tension: 0.35 },
+        { label: '退款金额', data: refundData, borderColor: 'rgba(239,68,68,0.5)', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 5, borderDash: [5,3], fill: false, tension: 0.35 }
       ]
     },
     options: {
@@ -700,22 +699,22 @@ function renderPie() {
   let labels = [], values = [], colors = [], dids = [], clickAction = null;
   if (currentZb === '全部') {
     titleEl.textContent = '业绩占比';
-    subEl.textContent = '商务 GMV 占比';
-    const items = ZB_ORDER.filter(zb => (db.summary_by_zb[zb]['直播GMV'] || 0) > 0);
+    subEl.textContent = '商务 支付GMV 占比';
+    const items = ZB_ORDER.filter(zb => (db.summary_by_zb[zb]['直播支付GMV'] || 0) > 0);
     labels = items;
-    values = items.map(zb => db.summary_by_zb[zb]['直播GMV']);
+    values = items.map(zb => db.summary_by_zb[zb]['直播支付GMV']);
     colors = items.map(zb => ZB_COLORS[zb]);
     dids = items.map(() => null);
     clickAction = function(idx) { switchZb(labels[idx]); };
   } else {
     titleEl.textContent = currentZb + ' · 业绩占比';
-    subEl.textContent = '达人 GMV 占比 · Top 8';
-    const anchors = db.anchors.filter(a => a['归属商务'] === currentZb && (a['直播GMV'] || 0) > 0);
-    anchors.sort((a, b) => b['直播GMV'] - a['直播GMV']);
+    subEl.textContent = '达人 支付GMV 占比 · Top 8';
+    const anchors = db.anchors.filter(a => a['归属商务'] === currentZb && (a['直播支付GMV'] || 0) > 0);
+    anchors.sort((a, b) => b['直播支付GMV'] - a['直播支付GMV']);
     const top = anchors.slice(0, 8);
-    const restGmv = anchors.slice(8).reduce((s, a) => s + (a['直播GMV'] || 0), 0);
+    const restGmv = anchors.slice(8).reduce((s, a) => s + (a['直播支付GMV'] || 0), 0);
     labels = top.map(a => a['主播昵称']);
-    values = top.map(a => a['直播GMV']);
+    values = top.map(a => a['直播支付GMV']);
     colors = labels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
     dids = top.map(a => a['主播抖音号']);
     if (restGmv > 0) { labels.push('其他'); values.push(restGmv); colors.push('#9ca3af'); dids.push(null); }
@@ -752,7 +751,7 @@ function renderPie() {
         pieCenter: {
           show: true,
           main: '¥' + pieTotalWan + '万',
-          sub: currentZb === '全部' ? '总 GMV' : currentZb + ' GMV'
+          sub: currentZb === '全部' ? '总支付GMV' : currentZb + ' 支付GMV'
         },
         legend: {
           position: legendPosition,
@@ -931,7 +930,7 @@ function renderAnchorTable() {
 
   document.getElementById('anchorCountLabel').textContent = '共 ' + anchors.length + ' 位达人';
 
-  const maxGMV = Math.max(1, ...DATA.dabogroup.anchors.map(a => parseFloat(a['直播GMV']) || 0));
+  const maxGMV = Math.max(1, ...DATA.dabogroup.anchors.map(a => parseFloat(a['直播支付GMV']) || 0));
 
   let bodyHtml = '';
   anchors.forEach((a, i) => {
@@ -951,7 +950,7 @@ function renderAnchorTable() {
       } else if (col === '归属商务') {
         const c = ZB_COLORS[val] || '#6b7280';
         bodyHtml += `<td style="${alignStyle}"><span class="tag" style="background:${c}22;color:${c};">${val || '-'}</span></td>`;
-      } else if (col === '直播GMV' && val && maxGMV > 0) {
+      } else if (col === '直播支付GMV' && val && maxGMV > 0) {
         let pct = ((parseFloat(val)/maxGMV)*100).toFixed(0);
         const did = String(douyinId).replace(/'/g, "\\'");
         const dname = String(a['主播昵称'] || '').replace(/'/g, "\\'");
